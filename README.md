@@ -3,11 +3,12 @@
 CentOS 7 Upgrade is a script for upgrade CentOS very easily.
 
 
-### How to use for Systemd OS :
+### How to use :
 
 Copy and Past in your terminal :
 
 ```bash
+yum update -y && reboot
 git clone https://github.com/liberodark/centos7-upgrade && cd centos7-upgrade && chmod +x install.sh; ./install.sh
 ```
 
@@ -23,12 +24,6 @@ Most of the testing has been done on 7-Server. For desktops, YMMV.
 
 Backups are your friend, it is entirely possible you will be left with a
 non-functioning and irrepairable system after this process finishes.
-
-### Usage
-
-```sh
-$ curl https://raw.githubusercontent.com/johnj/centos-to8-upgrade/master/to8.sh | sudo bash
-```
 
 ### Requirements
 
