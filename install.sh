@@ -58,13 +58,15 @@ echo
 
 which selinuxenabled 2>/dev/null 1> /dev/null
 
-if [[ $? -eq 0 ]]; then
-  selinuxenabled 2>/dev/null 1> /dev/null
-    else
-      echo "Continuing..."
-      SELINUX_BEFORE="$(getenforce)"
-      setenforce 0
-fi
+#if [[ $? -eq 0 ]]; then
+#  selinuxenabled 2>/dev/null 1> /dev/null
+#    else
+#      echo "Continuing..."
+#      SELINUX_BEFORE="$(getenforce)"
+#      setenforce 0
+#fi
+
+setenforce 0
 
 info "starting to make a copy of /${CONFIG_DIRS} into ${STAGING_DIR}"
 rsync -avu /${CONFIG_DIRS} ${STAGING_DIR} 2>&1 | tee -a $STAGING_DIR/to8.log  &> /dev/null
