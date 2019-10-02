@@ -1,15 +1,24 @@
-#!/usr/bin/env bash
-
-# https://github.com/johnj/centos-to8-upgrade
-
-# CentOS no longer provides a supported path for upgrading CentOS-7 systems to
-# CentOS-8.
+#!/bin/bash
 #
-# So here is a HIGHLY EXPERIMENTAL and HIGHLY DANGEROUS script for doing an
-# in-place/online upgrade to 8.
-#
-# Backups are your friend, it is entirely possible you will be left with a
-# non-functioning and irrepairable system after this process finishes.
+# About: Upgrade CentOS 7 to 8 automatically
+# Author: jonhj, liberodark
+# License: GNU GPLv3
+
+version="0.0.1"
+
+echo "Welcome on CenOS Upgrade Install Script $version"
+
+#=================================================
+# CHECK ROOT
+#=================================================
+
+if [[ $(id -u) -ne 0 ]] ; then echo "Please run as root" ; exit 1 ; fi
+
+#=================================================
+# RETRIEVE ARGUMENTS FROM THE MANIFEST AND VAR
+#=================================================
+
+distribution=$(cat /etc/*release | grep "PRETTY_NAME" | sed 's/PRETTY_NAME=//g' | sed 's/["]//g' | awk '{print $1}')
 
 function info() {
   echo "[$(date)] [info] $1"
