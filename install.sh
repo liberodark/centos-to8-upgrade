@@ -34,19 +34,8 @@ function preflight_check() {
   fi
 }
 
-STAGING_DIR=${STAGING_DIR:-/to8}
-CONFIG_DIRS=${CONFIG_DIRS:-etc}
-
 test "$(grep VERSION_ID /etc/os-release | awk -F'=' '{ print $2 }')" == '"7"'
 preflight_check "if you are running this on a RHEL-like 7 system" $? "you need to run me from a RHEL-like 7 OS"
-
-if [[ ! -d $STAGING_DIR ]]; then
-  mkdir -p $STAGING_DIR
-  for i in `echo dev proc run`; do
-    mkdir $STAGING_DIR/$i
-    mount -o bind /$i $STAGING_DIR/$i
-  done
-fi
 
 available=$(df --total $STAGING_DIR | tail -n1 | awk '{ print $4 }')
 test "$((available))" -ge 2000000
@@ -56,37 +45,20 @@ echo
 echo "Preflight checks PASSED"
 echo
 
-which selinuxenabled 2>/dev/null 1> /dev/null
-
-#if [[ $? -eq 0 ]]; then
-#  selinuxenabled 2>/dev/null 1> /dev/null
-#    else
-#      echo "Continuing..."
-#      SELINUX_BEFORE="$(getenforce)"
-#      setenforce 0
-#fi
-
 setenforce 0
 
-info "starting to make a copy of /${CONFIG_DIRS} into ${STAGING_DIR}"
-rsync -avu /${CONFIG_DIRS} ${STAGING_DIR} 2>&1 | tee -a $STAGING_DIR/to8.log  &> /dev/null
-info "finished making a copy of /${CONFIG_DIRS} into ${STAGING_DIR}"
-
-info "setting up CentOS 8 repository in ${STAGING_DIR}"
-mkdir -p $STAGING_DIR/etc/yum.repos.d $STAGING_DIR/etc/pki/rpm-gpg $STAGING_DIR/etc/yum/vars
-
-echo "8" > $STAGING_DIR/etc/yum/vars/releasever
+echo "8" > /etc/yum/vars/releasever
 
 # these will be replaced by dnf symlinks
 mkdir -p $STAGING_DIR/etc/yum/yum7
-mv $STAGING_DIR/etc/yum/{pluginconf.d,protected.d,vars} $STAGING_DIR/etc/yum/yum7
+mv /etc/yum/{pluginconf.d,protected.d,vars} $STAGING_DIR/etc/yum/yum7
 
 # from https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official
 # more info: https://www.centos.org/keys/
 
 # pub  4096R/8483C65D 2019-05-03 CentOS (CentOS Official Signing Key) <security@centos.org>
 #        Key fingerprint = 99DB 70FA E1D7 CE22 7FB6  4882 05B5 55B3 8483 C65D
-cat >/etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial <<EOF
+cat >/etc/pki/rpm-gpg/RPM-GPG-KEY-8 <<EOF
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v2.0.22 (GNU/Linux)
 
@@ -119,75 +91,63 @@ yy+mHmSv
 -----END PGP PUBLIC KEY BLOCK-----
 EOF
 
-cat >$STAGING_DIR/etc/yum.repos.d/CentOS-Base.repo <<EOF
+cat > /etc/yum.repos.d/CentOS-Base.repo <<EOF
 [BaseOS]
 name=CentOS-8 - Base
 mirrorlist=http://mirrorlist.centos.org/?release=8&arch=\$basearch&repo=BaseOS&infra=\$infra
 gpgcheck=1
 enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-8
 EOF
 
-cat >$STAGING_DIR/etc/yum.repos.d/CentOS-AppStream.repo <<EOF
+cat > /etc/yum.repos.d/CentOS-AppStream.repo <<EOF
 [AppStream]
 name=CentOS-8 - AppStream
 mirrorlist=http://mirrorlist.centos.org/?release=8&arch=\$basearch&repo=AppStream&infra=\$infra
 gpgcheck=1
 enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-8
 EOF
 
-cat >$STAGING_DIR/etc/yum.repos.d/CentOS-Extras.repo <<EOF
+cat > /etc/yum.repos.d/CentOS-Extras.repo <<EOF
 [Extras]
 name=CentOS-8 - Extras
 mirrorlist=http://mirrorlist.centos.org/?release=8&arch=\$basearch&repo=Extras&infra=\$infra
 gpgcheck=1
 enabled=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-8
 EOF
 
-info "starting CentOS-8 setup in ${STAGING_DIR}"
-yum install -y --installroot=$STAGING_DIR hostname yum centos-release centos-release-8.0 glibc-langpack-en $(rpmquery -a --queryformat '%{NAME} ') 2>&1 | tee -a $STAGING_DIR/to8.log &> /dev/null
-info "finished CentOS-8 setup in ${STAGING_DIR}"
+info "starting CentOS 8 setup"
+yum install -y kernel kernel-core kernel-modules
+#yum install -y dnf dnf-utils --skip-broken
+#dnf install -y hostname yum centos-release glibc-langpack-en $(rpmquery -a --queryformat '%{NAME} ') &> /dev/null
+info "finished CentOS 8 setup"
 
-info "beginning to sync ${STAGING_DIR} to /"
-rsync -irazvAX --progress --backup --backup-dir=$STAGING_DIR/to8_backup_$(date +\%Y-\%m-\%d) $STAGING_DIR/* / --exclude="var/cache/yum/x86_64/8/BaseOS/packages" --exclude="tmp" --exclude="sys" --exclude="lost+found" --exclude="mnt" --exclude="proc" --exclude="dev" --exclude="media" --exclude="to8.yum.log"  &> /dev/null
-info "finished syncing ${STAGING_DIR} to /"
+#info "beginning to sync ${STAGING_DIR} to /"
+#rsync -irazvAX --progress --backup --backup-dir=$STAGING_DIR/to8_backup_$(date +\%Y-\%m-\%d) $STAGING_DIR/* / --exclude="var/cache/yum/x86_64/8/BaseOS/packages" --exclude="tmp" --exclude="sys" --exclude="lost+found" --exclude="mnt" --exclude="proc" --exclude="dev" --exclude="media" --exclude="to8.yum.log"  &> /dev/null
+#info "finished syncing ${STAGING_DIR} to /"
 
-info "refreshing grub config for /boot"
-grub2-mkconfig -o /boot/grub2/grub.cfg &> /dev/null
-info "grub config reload for /boot finished"
+#info "refreshing grub config for /boot"
+#grub2-mkconfig -o /boot/grub2/grub.cfg &> /dev/null
+#info "grub config reload for /boot finished"
 
-info "setting up new repo files"
-for f in `ls /etc/yum.repos.d/CentOS*.repo.rpmnew`; do
-  n=$(echo $f | sed -e 's/\.rpmnew$//')
-  mv -vf $f $n
-done
+#info "setting up new repo files"
+#for f in `ls /etc/yum.repos.d/CentOS*.repo.rpmnew`; do
+#  n=$(echo $f | sed -e 's/\.rpmnew$//')
+#  mv -vf $f $n
+#done
 
-if [ -e /etc/os-release.rpmnew ]; then
-  mv /etc/os-release /etc/os-release.rpmold
-  mv /etc/os-release.rpmnew /etc/os-release
-fi
+#if [ -e /etc/os-release.rpmnew ]; then
+#  mv /etc/os-release /etc/os-release.rpmold
+#  mv /etc/os-release.rpmnew /etc/os-release
+#fi
 
 # this locale reference seems to have changed in 8
-if [[ "$LANG" == "en_US.UTF-8" ]]; then
-  localectl set-locale en_US.utf8 &> /dev/null
-fi
+#if [[ "$LANG" == "en_US.UTF-8" ]]; then
+#  localectl set-locale en_US.utf8 &> /dev/null
+#fi
 
-if [ -n "$SELINUX_BEFORE" ]; then
-  info "Almost done, since you had SELinux enabled, attempting to restore the contexts."
-  restorecon -e $STAGING_DIR -Rv / 2>&1 | tee -a $STAGING_DIR/to8.log
-  info "SELinux contexts restored."
-fi
+#systemctl daemon-reload &> /dev/null
 
-systemctl daemon-reload &> /dev/null
-
-echo "Packages which could not be migrated into CentOS 8 using the base repositories:"
-grep -e 'No package .* available' $STAGING_DIR/to8.log | awk '{ print $3 }' | tr $'\n' ' '
-
-echo
-
-info "CentOS-8 has been setup, please reboot to load the CentOS-8 kernel and modules."
-
-info "If you would like to move to CentOS-8-Stream, please install the centos-release-stream package from CentOS Extras by running:"
-info 'yum install --enablerepo="extras" centos-release-stream'
+#yum install --enablerepo="extras" centos-release-stream
