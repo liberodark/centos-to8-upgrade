@@ -64,8 +64,6 @@ if [[ $? -eq 0 ]]; then
       echo "Continuing..."
       SELINUX_BEFORE="$(getenforce)"
       setenforce 0
-    fi
-  fi
 fi
 
 info "starting to make a copy of /${CONFIG_DIRS} into ${STAGING_DIR}"
