@@ -1,4 +1,15 @@
-# centos-to8-upgrade
+# CentOS 7 Upgrade
+
+CentOS 7 Upgrade is a script for upgrade CentOS very easily.
+
+
+### How to use for Systemd OS :
+
+Copy and Past in your terminal :
+
+```bash
+git clone https://github.com/liberodark/centos7-upgrade && cd centos7-upgrade && chmod +x install.sh; ./install.sh
+```
 
 Live/in-place/online upgrade to CentOS 8.
 
