@@ -37,9 +37,6 @@ function preflight_check() {
 STAGING_DIR=${STAGING_DIR:-/to8}
 CONFIG_DIRS=${CONFIG_DIRS:-etc}
 
-test "$(whoami)" == "root"
-preflight_check "if you are running this as root" $? "you need to run me as root"
-
 test "$(grep VERSION_ID /etc/os-release | awk -F'=' '{ print $2 }')" == '"7"'
 preflight_check "if you are running this on a RHEL-like 7 system" $? "you need to run me from a RHEL-like 7 OS"
 
@@ -63,17 +60,6 @@ which selinuxenabled 2>/dev/null 1> /dev/null
 
 if [[ $? -eq 0 ]]; then
   selinuxenabled 2>/dev/null 1> /dev/null
-  if [[ $? -eq 0 ]]; then
-    echo "SELinux is enabled, this process will temporarily set SELinux to Permissive mode, continue? [Y/n]"
-    if [ -z "${NONINTERACTIVE}" ]; then
-      read -n 1 yn
-    else
-      yn="y"
-    fi
-    echo
-    if [[ "${yn}" == "n" ]]; then
-      echo "Aborting $0"
-      exit 4
     else
       echo "Continuing..."
       SELINUX_BEFORE="$(getenforce)"
@@ -83,7 +69,7 @@ if [[ $? -eq 0 ]]; then
 fi
 
 info "starting to make a copy of /${CONFIG_DIRS} into ${STAGING_DIR}"
-rsync -avu /${CONFIG_DIRS} ${STAGING_DIR} 2>&1 | tee -a $STAGING_DIR/to8.log
+rsync -avu /${CONFIG_DIRS} ${STAGING_DIR} 2>&1 | tee -a $STAGING_DIR/to8.log  &> /dev/null
 info "finished making a copy of /${CONFIG_DIRS} into ${STAGING_DIR}"
 
 info "setting up CentOS 8 repository in ${STAGING_DIR}"
@@ -165,7 +151,7 @@ yum install -y --installroot=$STAGING_DIR hostname yum centos-release centos-rel
 info "finished CentOS-8 setup in ${STAGING_DIR}"
 
 info "beginning to sync ${STAGING_DIR} to /"
-rsync -irazvAX --progress --backup --backup-dir=$STAGING_DIR/to8_backup_$(date +\%Y-\%m-\%d) $STAGING_DIR/* / --exclude="var/cache/yum/x86_64/8/BaseOS/packages" --exclude="tmp" --exclude="sys" --exclude="lost+found" --exclude="mnt" --exclude="proc" --exclude="dev" --exclude="media" --exclude="to8.yum.log"
+rsync -irazvAX --progress --backup --backup-dir=$STAGING_DIR/to8_backup_$(date +\%Y-\%m-\%d) $STAGING_DIR/* / --exclude="var/cache/yum/x86_64/8/BaseOS/packages" --exclude="tmp" --exclude="sys" --exclude="lost+found" --exclude="mnt" --exclude="proc" --exclude="dev" --exclude="media" --exclude="to8.yum.log"  &> /dev/null
 info "finished syncing ${STAGING_DIR} to /"
 
 info "refreshing grub config for /boot"
@@ -194,7 +180,7 @@ if [ -n "$SELINUX_BEFORE" ]; then
   info "SELinux contexts restored."
 fi
 
-systemctl daemon-reload
+systemctl daemon-reload &> /dev/null
 
 echo "Packages which could not be migrated into CentOS 8 using the base repositories:"
 grep -e 'No package .* available' $STAGING_DIR/to8.log | awk '{ print $3 }' | tr $'\n' ' '
