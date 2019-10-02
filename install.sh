@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # About: Upgrade CentOS 7 to 8 automatically
-# Author: jonhj, liberodark
+# Author: johnj, liberodark
 # License: GNU GPLv3
 
 version="0.0.1"
