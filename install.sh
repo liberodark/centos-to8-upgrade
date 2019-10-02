@@ -161,7 +161,7 @@ gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-centosofficial
 EOF
 
 info "starting CentOS-8 setup in ${STAGING_DIR}"
-yum install -y --installroot=$STAGING_DIR hostname yum centos-release centos-release-8.0 glibc-langpack-en $(rpmquery -a --queryformat '%{NAME} ') 2>&1 | tee -a $STAGING_DIR/to8.log
+yum install -y --installroot=$STAGING_DIR hostname yum centos-release centos-release-8.0 glibc-langpack-en $(rpmquery -a --queryformat '%{NAME} ') 2>&1 | tee -a $STAGING_DIR/to8.log &> /dev/null
 info "finished CentOS-8 setup in ${STAGING_DIR}"
 
 info "beginning to sync ${STAGING_DIR} to /"
@@ -169,7 +169,7 @@ rsync -irazvAX --progress --backup --backup-dir=$STAGING_DIR/to8_backup_$(date +
 info "finished syncing ${STAGING_DIR} to /"
 
 info "refreshing grub config for /boot"
-grub2-mkconfig -o /boot/grub2/grub.cfg
+grub2-mkconfig -o /boot/grub2/grub.cfg &> /dev/null
 info "grub config reload for /boot finished"
 
 info "setting up new repo files"
@@ -185,7 +185,7 @@ fi
 
 # this locale reference seems to have changed in 8
 if [[ "$LANG" == "en_US.UTF-8" ]]; then
-  localectl set-locale en_US.utf8
+  localectl set-locale en_US.utf8 &> /dev/null
 fi
 
 if [ -n "$SELINUX_BEFORE" ]; then
